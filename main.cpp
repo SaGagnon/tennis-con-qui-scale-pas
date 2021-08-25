@@ -6,6 +6,25 @@
 #include <cassert>
 #include <iomanip>
 
+// https://stackoverflow.com/questions/6942273/how-to-get-a-random-element-from-a-c-container
+#include  <random>
+#include  <iterator>
+
+template<typename Iter, typename RandomGenerator>
+Iter select_randomly(Iter start, Iter end, RandomGenerator& g) {
+        std::uniform_int_distribution<> dis(0, std::distance(start, end) - 1);
+        std::advance(start, dis(g));
+        return start;
+}
+
+template<typename Iter>
+Iter select_randomly(Iter start, Iter end) {
+        static std::random_device rd;
+        static std::mt19937 gen(rd());
+        return select_randomly(start, end, gen);
+}
+
+
 // chain = of possible combination of players as return by enumerate_all_combinations
 
 void recursive_enumerate_all_combinations(std::vector<std::vector<int>>& all_combinations,
@@ -97,18 +116,26 @@ double cost_of_adding_chain(std::vector<std::vector<int>> teammates,
 }
 
 std::vector<int> find_best_combinations(const std::vector<std::vector<int>>& teammates,
-                                        const std::vector<std::vector<int>>& opp,
-                                        const std::vector<std::vector<int>>& combinations) {
-        std::pair<double, std::vector<int>> best_cost_chain{DBL_MAX, {}};
+                                           const std::vector<std::vector<int>>& opp,
+                                           const std::vector<std::vector<int>>& combinations) {
+        double best_cost = DBL_MAX;
+        std::vector<std::vector<int>> best_chains;
 
         for (const auto& chain : combinations) {
                 double chain_cost = cost_of_adding_chain(teammates, opp, chain);
-                if (chain_cost < best_cost_chain.first) {
-                        best_cost_chain.first = chain_cost;
-                        best_cost_chain.second = chain;
+                chain_cost = floor((chain_cost*100)+0.5)/100.0;
+                if (chain_cost < best_cost) {
+                        best_cost = chain_cost;
+                        best_chains = {chain};
+                } else if (chain_cost == best_cost) {
+                        best_cost = chain_cost;
+                        best_chains.push_back(chain);
                 }
         }
-        return best_cost_chain.second;
+         //std::cout << "choice between " << best_chains.size() << std::endl;
+
+        return *select_randomly(best_chains.begin(), best_chains.end());
+//        return best_chains[0];
 }
 
 void update_matches_with_chain(std::vector<std::vector<int>>& teammates,
@@ -143,7 +170,8 @@ void print_matrix(const std::vector<std::vector<int>>& matrix) {
 
 int main() {
         const int NB_PLAYERS = 8;
-        const int NB_MATCHES = 36*3;
+        const int NB_MATCHES = 38*3;
+        //const int NB_MATCHES = 38*3;
 
         const std::vector<std::vector<int>> combinations = enumerate_all_combinations(NB_PLAYERS);
 
@@ -159,7 +187,7 @@ int main() {
 
         int i = 0;
         for (const auto& match : matches) {
-                std::cout << "match " << std::setw(2) << i++ << ": ";
+                std::cout << "match " << std::setw(3) << i++ << ": ";
                 for (auto p : match) {
                         std::cout << p << " ";
                 }

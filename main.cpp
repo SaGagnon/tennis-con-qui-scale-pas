@@ -75,6 +75,26 @@ namespace combin {
                 return all_combinations;
         }
 
+        void remove_symmetries(std::vector<std::vector<int>> &all_combinations) {
+                // Pour l'instant hardcodé pour 8,9 joueurs...
+                all_combinations.erase(
+                        std::remove_if(all_combinations.begin(), all_combinations.end(),
+                                       [&](const auto &c) {
+                                               bool keep = c[0] < c[1] and
+                                                           c[2] < c[3] and
+
+                                                           c[4] < c[5] and
+                                                           c[6] < c[7] and
+
+                                                           c[0] < c[2] and
+                                                           c[4] < c[6] and
+                                                           c[0] < c[4];
+
+                                               return not keep;
+                                       }),
+                        all_combinations.end());
+        }
+
         /// Retourne toutes les combinaison avec PLAYER qui bench.
         /// Cette fonction assume qu'on a 4n+1 joueurs et que c'est le dernier qui bench.
         /// \param all_combinations
@@ -208,7 +228,7 @@ void print_matrix(const std::vector<std::vector<int>> &matrix) {
         }
 }
 
-void solution_8_38_3()  {
+void solution_8_38_3() {
         const int NB_PLAYERS = 8;
         const int NB_MATCHES = 38 * 3;
         //const int NB_MATCHES = 38*3;
@@ -245,10 +265,11 @@ void solution_8_38_3()  {
 
 void solution_9_38_3() {
         const int NB_PLAYERS = 9;
-        const int NB_SESSION = 3;
+        const int NB_SESSION = 38;
         const int NB_MATCH_PER_SESSION = 3;
 
-        const std::vector<std::vector<int>> combinations = combin::enumerate_all_combinations(NB_PLAYERS);
+        std::vector<std::vector<int>> combinations = combin::enumerate_all_combinations(NB_PLAYERS);
+        combin::remove_symmetries(combinations);
 
         std::vector<std::vector<int>> teammates(NB_PLAYERS, std::vector<int>(NB_PLAYERS, 0));
         std::vector<std::vector<int>> opp(NB_PLAYERS, std::vector<int>(NB_PLAYERS, 0));
@@ -256,7 +277,8 @@ void solution_9_38_3() {
         std::vector<std::vector<int>> matches;
         for (int i = 0; i < NB_SESSION; i++) {
                 const int missing_player = i % NB_PLAYERS;
-                const auto combinations_with_benching_player = combin::combinations_with_benching_player(combinations, missing_player);
+                const auto combinations_with_benching_player = combin::combinations_with_benching_player(combinations,
+                                                                                                         missing_player);
                 for (int j = 0; j < NB_MATCH_PER_SESSION; j++) {
                         update_matches_with_best_chain(teammates, opp, combinations_with_benching_player, matches);
                 }
